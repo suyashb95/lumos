@@ -75,7 +75,7 @@ void switchPatternConfig(DynamicJsonDocument& pattern_config) {
     } else if (strcmp(behaviour, "FADE") == 0) {
         behavior = FADE;
     } else if (strcmp(behaviour, "WAVE") == 0) {
-        behavior = WAVE
+        behavior = WAVE;
     }
     else {
         behavior = STATIC;
@@ -125,7 +125,6 @@ void blendColors(CRGB leds[], uint8_t num_leds, CRGB colors[], uint8_t num_color
 
     static uint8_t i = 0;
     static uint8_t amount_to_blend = 0;
-    static TGradientDirectionCode blendDirection = SHORTEST_HUES;
 
     static CRGB current_color = colors[0];
     static CRGB target_color = colors[0];
@@ -140,7 +139,7 @@ void blendColors(CRGB leds[], uint8_t num_leds, CRGB colors[], uint8_t num_color
             amount_to_blend = 0;
         }
 
-        current_color = blend(start_color, target_color, amount_to_blend, blendDirection);
+        current_color = blend(start_color, target_color, amount_to_blend);
         fill_solid(leds, num_leds, current_color);
         amount_to_blend++;
     }
