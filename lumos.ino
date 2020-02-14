@@ -13,7 +13,7 @@
 
 #define COLORS_KEY "colors"
 #define BEHAVIOR_KEY "behavior"
-#define BRIGHTNESS_KEY "behavior"
+#define BRIGHTNESS_KEY "brightness"
 
 enum behaviors {
   STATIC,
@@ -25,7 +25,7 @@ enum behaviors {
 
 CRGB leds[NUM_LEDS];
 CRGB colors[NUM_LEDS];
-CRGBPalette16 palette(LavaColors_p);
+CRGBPalette16 palette;
 
 uint8_t i = 0, num_colors=0;
 enum behaviors behavior;
@@ -46,7 +46,10 @@ CRGBPalette16 & createPalette(CRGB colors[]) {
 
     if (num_colors >= 2) {
       num_palette_colors = num_colors;
-      memcpy(palette_colors, colors, sizeof(colors[0]) * num_colors);
+      memset(palette_colors, colors[0], num_colors);
+      for (uint8_t i=0; i < num_palette_colors; i++) {
+        palette_colors[i] = colors[i];  
+      }
     }
 
     TDynamicRGBGradientPalette_byte palette_anchors[num_palette_colors * 4];
@@ -87,7 +90,7 @@ void setPalette(CRGB colors[]) {
 }
 
 void setColors(DynamicJsonDocument& pattern_config) {
-    JsonArray new_colors = pattern_config[COLORS_KEY];
+    JsonArray new_colors = pattern_config["colors"];
 
     for(uint8_t i=0; i < new_colors.size(); i++) {
         int temp = new_colors[i];
@@ -102,7 +105,7 @@ void setColors(DynamicJsonDocument& pattern_config) {
 
 void setBrightness(DynamicJsonDocument& pattern_config) {
   int brightness = pattern_config[BRIGHTNESS_KEY];
-  FastLED.setBrightness(brightness);
+  FastLED.setBrightness(100);
 }
 
 void cyclePalette(CRGB leds[], uint8_t num_leds, CRGBPalette16 palette, uint8_t cycle_rate) {
