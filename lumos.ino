@@ -5,15 +5,11 @@
 #include <WiFiMulti.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
-
+#include "config.h"
 
 #define NUM_LEDS 60
 #define DATA_PIN 19
 #define USE_SERIAL Serial
-
-#define COLORS_KEY "colors"
-#define BEHAVIOR_KEY "behavior"
-#define BRIGHTNESS_KEY "brightness"
 
 enum behaviors {
   STATIC,
@@ -22,6 +18,10 @@ enum behaviors {
   BREATHE,
   WAVE
 };
+
+const char* BEHAVIOR_KEY = "behavior";
+const char* BRIGHTNESS_KEY = "brightness";
+const char* COLORS_KEY = "colors";
 
 CRGB leds[NUM_LEDS];
 CRGB colors[NUM_LEDS];
@@ -48,18 +48,18 @@ CRGBPalette16 & createPalette(CRGB colors[]) {
       num_palette_colors = num_colors;
       memset(palette_colors, colors[0], num_colors);
       for (uint8_t i=0; i < num_palette_colors; i++) {
-        palette_colors[i] = colors[i];  
+        palette_colors[i] = colors[i];
       }
     }
 
     TDynamicRGBGradientPalette_byte palette_anchors[num_palette_colors * 4];
 
-    uint8_t index_step = 256 / (num_palette_colors - 1);
+    uint8_t index_step = 256 / (num_palette_colors-1);
 
     for(uint8_t i=0; i < num_palette_colors; i++) {
         uint8_t palette_anchor_base = i*4;
         uint8_t color_index = (i == 0) ? 0 : (index_step * i) - 1;
-
+        color_index = (i == (num_palette_colors - 1)) ? color_index - 5 : color_index;
         palette_anchors[palette_anchor_base] = color_index;
         palette_anchors[palette_anchor_base + 1] = palette_colors[i].red;
         palette_anchors[palette_anchor_base + 2] = palette_colors[i].green;
@@ -90,7 +90,7 @@ void setPalette(CRGB colors[]) {
 }
 
 void setColors(DynamicJsonDocument& pattern_config) {
-    JsonArray new_colors = pattern_config["colors"];
+    JsonArray new_colors = pattern_config[COLORS_KEY];
 
     for(uint8_t i=0; i < new_colors.size(); i++) {
         int temp = new_colors[i];
@@ -105,7 +105,7 @@ void setColors(DynamicJsonDocument& pattern_config) {
 
 void setBrightness(DynamicJsonDocument& pattern_config) {
   int brightness = pattern_config[BRIGHTNESS_KEY];
-  FastLED.setBrightness(100);
+  FastLED.setBrightness(brightness);
 }
 
 void cyclePalette(CRGB leds[], uint8_t num_leds, CRGBPalette16 palette, uint8_t cycle_rate) {
@@ -252,12 +252,13 @@ void setup() {
         delay(1000);
     }
 
-    WiFi.begin("SunCity Surveillance", "P@s$w0rd1234");
+    WiFi.begin(SSID, PASSWORD);
 
     while(WiFi.status() != WL_CONNECTED) {
         USE_SERIAL.printf("Attempting connection\n");
         delay(100);
     }
+
     USE_SERIAL.printf("Wi-Fi connected\n");
     USE_SERIAL.println("Connected!");
     USE_SERIAL.print("My IP address: ");
