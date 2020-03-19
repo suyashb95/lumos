@@ -22,20 +22,22 @@ enum behaviors {
 const char* BEHAVIOR_KEY = "behavior";
 const char* BRIGHTNESS_KEY = "brightness";
 const char* COLORS_KEY = "colors";
+const char* MOTION_RATE_KEY = "motionRate";
 
 CRGB leds[NUM_LEDS];
 CRGB colors[NUM_LEDS];
 CRGBPalette16 palette;
 
 uint8_t i = 0, num_colors=0;
+int motion_rate = 20;
 enum behaviors behavior;
 
 WebSocketsServer webSocket = WebSocketsServer(1234);
 
 CRGBPalette16 & createPalette(CRGB colors[]) {
     /*
-    creates a gradient palette from the chosen colors(max 16). If less than
-    2 colors are chosen, it defaults to a Red -> Black gradient palette
+    creates a gradient palette from the chosen colors(max 16). If less than1
+    2 colors are chosen, it defaults to a Red -> Blue gradient palette
 
     The colors are used as equally spaced anchor points which form the palette
     Read more here: https://github.com/FastLED/FastLED/wiki/Gradient-color-palettes
@@ -43,8 +45,8 @@ CRGBPalette16 & createPalette(CRGB colors[]) {
 
     uint8_t num_palette_colors = 2;
     CRGB palette_colors[] = {CRGB::Red, CRGB::Blue};
-
-    if (num_colors >= 2) {
+    
+    if (num_colors > 2) {
       num_palette_colors = num_colors;
       memset(palette_colors, colors[0], num_colors);
       for (uint8_t i=0; i < num_palette_colors; i++) {
@@ -59,12 +61,13 @@ CRGBPalette16 & createPalette(CRGB colors[]) {
     for(uint8_t i=0; i < num_palette_colors; i++) {
         uint8_t palette_anchor_base = i*4;
         uint8_t color_index = (i == 0) ? 0 : (index_step * i) - 1;
-        color_index = (i == (num_palette_colors - 1)) ? color_index - 5 : color_index;
+        color_index = (i == (num_palette_colors - 1)) ? 255 : color_index;
         palette_anchors[palette_anchor_base] = color_index;
         palette_anchors[palette_anchor_base + 1] = palette_colors[i].red;
         palette_anchors[palette_anchor_base + 2] = palette_colors[i].green;
         palette_anchors[palette_anchor_base + 3] = palette_colors[i].blue;
     }
+    
     return palette.loadDynamicGradientPalette(palette_anchors);
 }
 
@@ -108,9 +111,14 @@ void setBrightness(DynamicJsonDocument& pattern_config) {
   FastLED.setBrightness(brightness);
 }
 
+void setMotionRate(DynamicJsonDocument& pattern_config) {
+  motion_rate = pattern_config[MOTION_RATE_KEY];
+}
+
 void cyclePalette(CRGB leds[], uint8_t num_leds, CRGBPalette16 palette, uint8_t cycle_rate) {
     static uint8_t start_index = 0;
     static uint8_t index_increment = 1; //modify this to control wavelength?
+    USE_SERIAL.println(cycle_rate);
 
     EVERY_N_MILLISECONDS(cycle_rate) {
         fill_palette(leds, num_leds, start_index, index_increment, palette, 100, LINEARBLEND);
@@ -125,6 +133,7 @@ void blendColors(CRGB leds[], uint8_t num_leds, CRGB colors[], uint8_t num_color
       fill_solid(leds, num_leds, colors[0]);
       return;
     }
+    USE_SERIAL.println(blend_rate);
 
     static uint8_t i = 0;
     static uint8_t amount_to_blend = 0;
@@ -153,6 +162,7 @@ void jumpColors(CRGB leds[], uint8_t num_leds, CRGB colors[], uint8_t num_colors
 
     static uint8_t i = 0;
     static CRGB current_color = colors[i];
+    USE_SERIAL.println(duration);
 
     EVERY_N_MILLISECONDS(duration) {
         fill_solid(leds, num_leds, current_color);
@@ -179,6 +189,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                         USE_SERIAL.println("Deserialization succeeded");
                         setColors(patternConfig);
                         setBrightness(patternConfig);
+                        setMotionRate(patternConfig);
                         setPalette(colors);
                         switchPatternConfig(patternConfig);
                         break;
@@ -215,15 +226,15 @@ void handlePatternConfig() {
             break;
         }
         case JUMP: {
-            jumpColors(leds, NUM_LEDS, colors, num_colors, 500);
+            jumpColors(leds, NUM_LEDS, colors, num_colors, motion_rate);
             break;
         }
         case FADE: {
-            blendColors(leds, NUM_LEDS, colors, num_colors, 10);
+            blendColors(leds, NUM_LEDS, colors, num_colors, motion_rate);
             break;
         }
         case WAVE: {
-            cyclePalette(leds, NUM_LEDS, palette, 20);
+            cyclePalette(leds, NUM_LEDS, palette, motion_rate);
             break;
         }
         default: {
