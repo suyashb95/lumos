@@ -1,4 +1,5 @@
 #include "FastLED.h"
+#include "Timer.h"
 
 enum behavior {
 	STATIC,
@@ -21,6 +22,7 @@ class SoulDots {
 		void set_behavior(behavior new_behavior);
 		void set_colors(CRGB colors[], int num_colors);
 		void loop();
+		void switch_behavior(void* soulDots);
 
 	private:
 		CRGBPalette16 _current_palette;
@@ -31,10 +33,16 @@ class SoulDots {
 		int _num_leds;
 		int _num_colors = 2;
 		behavior _behavior;
+		Timer _timer;
+		int _current_task_id;
 
 		CRGBPalette16& create_palette();
     	void static_color();
+		static void static_color_wrapper(void* soulDots);
 		void flash_colors();
+		static void flash_colors_wrapper(void* soulDots);
 		void fade_colors();
+		static void fade_colors_wrapper(void* soulDots);
 		void wave_palette();
+		static void wave_palette_wrapper(void* soulDots);
 };

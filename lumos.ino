@@ -1,14 +1,14 @@
 #include "SoulDots.h"
+#include "config.h"
+
 #include <WebSocketsServer.h>
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
-#include "config.h"
 
 #define NUM_LEDS 60
-#define DATA_PIN 19
 #define USE_SERIAL Serial
 
 const char* BEHAVIOR_KEY = "behavior";
@@ -83,6 +83,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                     case DeserializationError::Ok:
                         USE_SERIAL.println("Deserialization succeeded");
                         updateSoulDots(patternConfig);
+                        soulDots.switch_behavior(&soulDots);
                         break;
                     case DeserializationError::InvalidInput:
                         USE_SERIAL.println("Invalid input!");

@@ -9,7 +9,7 @@ SoulDots::SoulDots(int num_leds) {
     _max_brightness = 100;
     _behavior = STATIC;
     _current_palette = create_palette();
-        
+
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(_leds, _num_leds);
     FastLED.setBrightness(_max_brightness);
 }
@@ -71,22 +71,23 @@ void SoulDots::set_behavior(behavior new_behavior) {
 
 void SoulDots::set_colors(CRGB colors[], int num_colors) {
     if (num_colors < 2) {
-        CRGB temp[2] = { CRGB::Red, CRGB::Blue };
+        CRGB temp[2] = {CRGB::Red, CRGB::Blue};
         memcpy(_colors, temp, 2 * sizeof(CRGB));
-    } else {
+    }
+    else {
         memcpy(_colors, colors, num_colors * sizeof(CRGB));
         _num_colors = num_colors;
     }
     _current_palette = create_palette();
 }
 
-CRGBPalette16& SoulDots::create_palette() {
+CRGBPalette16 &SoulDots::create_palette() {
     TDynamicRGBGradientPalette_byte palette_anchors[_num_colors * 4];
 
-    uint8_t index_step = 256 / (_num_colors-1);
+    uint8_t index_step = 256 / (_num_colors - 1);
 
-    for(uint8_t i=0; i < _num_colors; i++) {
-        uint8_t palette_anchor_base = i*4;
+    for (uint8_t i = 0; i < _num_colors; i++) {
+        uint8_t palette_anchor_base = i * 4;
         uint8_t color_index = (i == 0) ? 0 : (index_step * i) - 1;
         color_index = (i == (_num_colors - 1)) ? 255 : color_index;
         palette_anchors[palette_anchor_base] = color_index;
@@ -97,48 +98,63 @@ CRGBPalette16& SoulDots::create_palette() {
     return _current_palette.loadDynamicGradientPalette(palette_anchors);
 }
 
-void SoulDots::loop() {
-    switch(_behavior) {
+void SoulDots::switch_behavior(void* soulDots) {
+    _timer.stop(_current_task_id);
+    switch (_behavior) {
         case STATIC: {
-            static_color();
+            _current_task_id = _timer.every(_animation_rate, static_color_wrapper, soulDots);
             break;
         }
         case FLASH: {
-            flash_colors();
+            _current_task_id = _timer.every(_animation_rate, flash_colors_wrapper, soulDots);
             break;
         }
         case FADE: {
-            fade_colors();
+            _current_task_id = _timer.every(_animation_rate, fade_colors_wrapper, soulDots);
             break;
         }
-        case WAVE: {
-            wave_palette();
+        case WAVE:{
+            _current_task_id = _timer.every(_animation_rate, wave_palette_wrapper, soulDots);
             break;
         }
-        default: {
-            static_color();
+        default:{
+            _current_task_id = _timer.every(_animation_rate, static_color_wrapper, soulDots);
             break;
         }
     }
+}
+
+void SoulDots::loop() {
+  _timer.update();
+}
+
+void SoulDots::static_color(){
+    fill_solid(_leds, _num_leds, _colors[0]);
     FastLED.show();
 }
 
-void SoulDots::static_color() {
-    fill_solid(_leds, _num_leds, _colors[0]);
+void SoulDots::static_color_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*)soulDots;
+    thisObject->static_color();
 }
 
 void SoulDots::wave_palette() {
     static uint8_t start_index = 0;
     static uint8_t index_increment = 1;
 
-    EVERY_N_MILLISECONDS(_animation_rate) {
-        fill_palette(_leds, _num_leds, start_index, index_increment, _current_palette, 100, LINEARBLEND);
-        start_index = (start_index == 255) ? 0 : start_index + 1;
-    }
+    fill_palette(_leds, _num_leds, start_index, index_increment, _current_palette, 100, LINEARBLEND);
+    start_index = (start_index == 255) ? 0 : start_index + 1;
+    FastLED.show();
+}
+
+void SoulDots::wave_palette_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*) soulDots;
+    thisObject->wave_palette();
 }
 
 void SoulDots::flash_colors() {
-    if (_num_colors == 0) return;
+    if (_num_colors == 0)
+        return;
 
     if (_num_colors == 1) {
         static_color();
@@ -148,14 +164,19 @@ void SoulDots::flash_colors() {
     static uint8_t i = 0;
     static CRGB current_color = _colors[i];
 
-    EVERY_N_MILLISECONDS(_animation_rate) {
-        fill_solid(_leds, _num_leds, current_color);
-        current_color = _colors[((++i) % _num_colors)];
-    }
+    fill_solid(_leds, _num_leds, current_color);
+    current_color = _colors[((++i) % _num_colors)];
+    FastLED.show();
+}
+
+void SoulDots::flash_colors_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*)soulDots;
+    thisObject->flash_colors();
 }
 
 void SoulDots::fade_colors() {
-    if (_num_colors == 0) return;
+    if (_num_colors == 0)
+        return;
 
     if (_num_colors == 1) {
         static_color();
@@ -169,17 +190,20 @@ void SoulDots::fade_colors() {
     static CRGB target_color = _colors[0];
     static CRGB start_color = _colors[0];
 
-    EVERY_N_MILLISECONDS(_animation_rate) {
-
-        if (target_color == current_color) {
-            start_color = _colors[i];
-            i = (i + 1) % _num_colors;
-            target_color = _colors[i];
-            amount_to_blend = 0;
-        }
-
-        current_color = blend(start_color, target_color, amount_to_blend);
-        fill_solid(_leds, _num_leds, current_color);
-        amount_to_blend++;
+    if (target_color == current_color) {
+        start_color = _colors[i];
+        i = (i + 1) % _num_colors;
+        target_color = _colors[i];
+        amount_to_blend = 0;
     }
+
+    current_color = blend(start_color, target_color, amount_to_blend);
+    fill_solid(_leds, _num_leds, current_color);
+    amount_to_blend++;
+    FastLED.show();
+}
+
+void SoulDots::fade_colors_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*)soulDots;
+    thisObject->fade_colors();
 }
