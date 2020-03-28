@@ -17,7 +17,7 @@ const char* COLORS_KEY = "colors";
 const char* MOTION_RATE_KEY = "motionRate";
 
 WebSocketsServer webSocket = WebSocketsServer(1234);
-SoulDots soulDots = SoulDots(60);
+SoulDots soulDots;
 
 void setBehavior(DynamicJsonDocument& pattern_config) {
     const char* behaviour = pattern_config[BEHAVIOR_KEY];
@@ -38,7 +38,7 @@ void setBehavior(DynamicJsonDocument& pattern_config) {
 
 void setColors(DynamicJsonDocument& pattern_config) {
     JsonArray new_colors = pattern_config[COLORS_KEY];
-    CRGB colors[new_colors.size()];
+    CRGB* colors = new CRGB[new_colors.size()];
     for(uint8_t i=0; i < new_colors.size(); i++) {
         int temp = new_colors[i];
         uint8_t red = (temp >> 16) & 0xFF;
@@ -112,14 +112,13 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 }
 
 void setup() {
+    soulDots.begin(60);
+    
     USE_SERIAL.begin(115200);
-
     USE_SERIAL.setDebugOutput(true);
-
     USE_SERIAL.println();
     USE_SERIAL.println();
     USE_SERIAL.println();
-
     for(uint8_t t = 4; t > 0; t--) {
         USE_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
         USE_SERIAL.flush();

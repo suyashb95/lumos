@@ -2,55 +2,68 @@
 
 #define DATA_PIN 19
 
+SoulDots::SoulDots() {
+    SoulDots(0);
+}
+
 SoulDots::SoulDots(int num_leds) {
-    _leds = new CRGB[num_leds];
-    _num_leds = num_leds;
-    _animation_rate = 50;
-    _max_brightness = 100;
-    _behavior = STATIC;
-    _current_palette = create_palette();
-
-    FastLED.addLeds<NEOPIXEL, DATA_PIN>(_leds, _num_leds);
-    FastLED.setBrightness(_max_brightness);
+    SoulDots(num_leds, NULL, 2, 50, 50);
 }
 
-SoulDots::SoulDots(int num_leds, CRGB colors[], int num_colors) {
-    _leds = new CRGB[num_leds];
-    _num_leds = num_leds;
-    memcpy(_colors, colors, num_colors * sizeof(CRGB));
-    _num_colors = num_colors;
-    _animation_rate = 50;
-    _max_brightness = 100;
-    _behavior = STATIC;
-    _current_palette = create_palette();
-
-    FastLED.addLeds<NEOPIXEL, DATA_PIN>(_leds, _num_leds);
-    FastLED.setBrightness(_max_brightness);
+SoulDots::SoulDots(int num_leds, CRGB* colors, int num_colors) {
+    SoulDots(num_leds, colors, num_colors, 50, 50);
 }
 
-SoulDots::SoulDots(int num_leds, CRGB colors[], int num_colors, int max_brightness) {
-    _leds = new CRGB[num_leds];
-    _num_leds = num_leds;
-    memcpy(_colors, colors, num_colors * sizeof(CRGB));
-    _num_colors = num_colors;
-    _animation_rate = 50;
-    _max_brightness = max_brightness;
-    _behavior = STATIC;
-    _current_palette = create_palette();
-
-    FastLED.addLeds<NEOPIXEL, DATA_PIN>(_leds, _num_leds);
-    FastLED.setBrightness(_max_brightness);
+SoulDots::SoulDots(int num_leds, CRGB* colors, int num_colors, int max_brightness) {
+    SoulDots(num_leds, colors, num_colors, max_brightness, 50);
 }
 
-SoulDots::SoulDots(int num_leds, CRGB colors[], int num_colors, int max_brightness, int animation_rate) {
+SoulDots::SoulDots(int num_leds, CRGB* colors, int num_colors, int max_brightness, int animation_rate) {
     _leds = new CRGB[num_leds];
     _num_leds = num_leds;
-    memcpy(_colors, colors, num_colors * sizeof(CRGB));
-    _num_colors = num_leds;
+
+    if (colors == NULL)  {
+        _colors = new CRGB[2] {CRGB::Red, CRGB::Blue};
+        _num_colors = 2;
+    } else {
+        memcpy(_colors, colors, num_colors * sizeof(CRGB));
+        _num_colors = num_colors;
+    }
+
     _animation_rate = animation_rate;
     _max_brightness = max_brightness;
     _behavior = STATIC;
-    _current_palette = create_palette();
+}
+
+SoulDots::SoulDots(const SoulDots& s) {
+    _leds = new CRGB[s._num_leds];
+    memcpy(_leds, s._leds, s._num_leds * sizeof(CRGB));
+
+    _colors = new CRGB[s._num_colors];
+    memcpy(_colors, s._colors, s._num_colors * sizeof(CRGB));
+
+    _num_colors = s._num_colors;
+    _num_leds = s._num_leds;
+    _animation_rate = s._animation_rate;
+    _max_brightness = s._max_brightness;
+    _behavior = s._behavior;
+}
+
+void SoulDots::begin(int num_leds, CRGB* colors, int num_colors, int animation_rate, int max_brightness) {
+    _leds = new CRGB[num_leds];
+    _num_leds = num_leds;
+
+    if (colors == NULL)  {
+        _colors = new CRGB[2] {CRGB::Red, CRGB::Blue};
+        _num_colors = 2;
+    } else {
+        memcpy(_colors, colors, num_colors * sizeof(CRGB));
+        _num_colors = num_colors;
+    }
+
+    _animation_rate = animation_rate;
+    _max_brightness = max_brightness;
+    _behavior = STATIC;
 
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(_leds, _num_leds);
     FastLED.setBrightness(_max_brightness);
@@ -69,16 +82,12 @@ void SoulDots::set_behavior(behavior new_behavior) {
     _behavior = new_behavior;
 }
 
-void SoulDots::set_colors(CRGB colors[], int num_colors) {
-    if (num_colors < 2) {
-        CRGB temp[2] = {CRGB::Red, CRGB::Blue};
-        memcpy(_colors, temp, 2 * sizeof(CRGB));
-    }
-    else {
+void SoulDots::set_colors(CRGB* colors, int num_colors) {
+    if (num_colors >= 2) {
         memcpy(_colors, colors, num_colors * sizeof(CRGB));
         _num_colors = num_colors;
+        _current_palette = create_palette();
     }
-    _current_palette = create_palette();
 }
 
 CRGBPalette16 &SoulDots::create_palette() {
@@ -128,7 +137,7 @@ void SoulDots::loop() {
   _timer.update();
 }
 
-void SoulDots::static_color(){
+void SoulDots::static_color() {
     fill_solid(_leds, _num_leds, _colors[0]);
     FastLED.show();
 }
