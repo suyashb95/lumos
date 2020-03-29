@@ -1,7 +1,7 @@
 #include "FastLED.h"
 #include "Timer.h"
 
-enum behavior {
+enum Behavior {
 	STATIC,
 	FADE,
 	FLASH,
@@ -12,16 +12,12 @@ enum behavior {
 class SoulDots {
 
 	public:
-		SoulDots(int num_leds, CRGB colors[], int num_colors, int max_brightness, int animation_rate);
-		SoulDots(int num_leds, CRGB colors[], int num_colors, int max_brightness);
-		SoulDots(int num_leds, CRGB colors[], int num_colors);
-		SoulDots(int num_leds);
-    	SoulDots();
+		SoulDots(int num_leds = 0, CRGB* colors = NULL, int num_colors = 2, int max_brightness = 50, int animation_rate = 50);
     	SoulDots(const SoulDots& soulDots);
 
 		void set_max_brightness(int brightness);
 		void set_animation_rate(int animation_rate);
-		void set_behavior(behavior new_behavior);
+		void set_behavior(Behavior new_behavior);
 		void set_colors(CRGB colors[], int num_colors);
 		void begin(int num_leds, CRGB* colors = NULL, int num_colors = 2, int animation_rate = 50, int max_brightness = 50);
 		void loop();
@@ -35,9 +31,9 @@ class SoulDots {
 		int _animation_rate;
 		int _num_leds;
 		int _num_colors;
-		Timer _timer;
 		int _current_task_id;
-   		behavior _behavior;
+		Timer _timer;
+   		Behavior _behavior;
 
 		CRGBPalette16& create_palette();
     	void static_color();

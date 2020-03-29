@@ -2,22 +2,6 @@
 
 #define DATA_PIN 19
 
-SoulDots::SoulDots() {
-    SoulDots(0);
-}
-
-SoulDots::SoulDots(int num_leds) {
-    SoulDots(num_leds, NULL, 2, 50, 50);
-}
-
-SoulDots::SoulDots(int num_leds, CRGB* colors, int num_colors) {
-    SoulDots(num_leds, colors, num_colors, 50, 50);
-}
-
-SoulDots::SoulDots(int num_leds, CRGB* colors, int num_colors, int max_brightness) {
-    SoulDots(num_leds, colors, num_colors, max_brightness, 50);
-}
-
 SoulDots::SoulDots(int num_leds, CRGB* colors, int num_colors, int max_brightness, int animation_rate) {
     _leds = new CRGB[num_leds];
     _num_leds = num_leds;
@@ -50,6 +34,10 @@ SoulDots::SoulDots(const SoulDots& s) {
 }
 
 void SoulDots::begin(int num_leds, CRGB* colors, int num_colors, int animation_rate, int max_brightness) {
+    /*
+    second initialization method because the stack, heap and registers etc aren't set up before the setup() function
+    is called so even though the constructor is called in global scope, the members might not have been initialized
+    */
     _leds = new CRGB[num_leds];
     _num_leds = num_leds;
 
@@ -78,7 +66,7 @@ void SoulDots::set_animation_rate(int animation_rate) {
     _animation_rate = animation_rate;
 }
 
-void SoulDots::set_behavior(behavior new_behavior) {
+void SoulDots::set_behavior(Behavior new_behavior) {
     _behavior = new_behavior;
 }
 

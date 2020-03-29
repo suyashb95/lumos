@@ -20,14 +20,14 @@ WebSocketsServer webSocket = WebSocketsServer(1234);
 SoulDots soulDots;
 
 void setBehavior(DynamicJsonDocument& pattern_config) {
-    const char* behaviour = pattern_config[BEHAVIOR_KEY];
-    if(!strcmp(behaviour, "STATIC")){
+    const char* behavior = pattern_config[BEHAVIOR_KEY];
+    if(!strcmp(behavior, "STATIC")){
         soulDots.set_behavior(STATIC);
-    } else if (strcmp(behaviour, "JUMP") == 0) {
+    } else if (strcmp(behavior, "JUMP") == 0) {
         soulDots.set_behavior(FLASH);
-    } else if (strcmp(behaviour, "FADE") == 0) {
+    } else if (strcmp(behavior, "FADE") == 0) {
         soulDots.set_behavior(FADE);
-    } else if (strcmp(behaviour, "WAVE") == 0) {
+    } else if (strcmp(behavior, "WAVE") == 0) {
         soulDots.set_behavior(WAVE);
     }
     else {
@@ -113,7 +113,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 
 void setup() {
     soulDots.begin(60);
-    
+
     USE_SERIAL.begin(115200);
     USE_SERIAL.setDebugOutput(true);
     USE_SERIAL.println();
