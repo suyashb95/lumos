@@ -1,22 +1,29 @@
 #include "SoulDots.h"
-#include "config.h"
-
-#include <WebSocketsServer.h>
-
-#include <WiFi.h>
-#include <WiFiMulti.h>
-#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+
+#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" // Lumos Service
+#define CHARACTERISTIC_UUID_RX "9d1f0205-5b69-46a2-9ff9-d4aec843061a"
+#define CHARACTERISTIC_UUID_TX "1f2dbd21-8b5f-46a8-88b4-d8b41158fe2d"
 
 #define NUM_LEDS 60
-#define USE_SERIAL Serial
+
+BLEServer *pServer = NULL;
+BLECharacteristic * pTxCharacteristic;
+
+bool deviceConnected = false;
+bool oldDeviceConnected = false;
+
+uint8_t txValue = 0;
 
 const char* BEHAVIOR_KEY = "behavior";
 const char* BRIGHTNESS_KEY = "brightness";
 const char* COLORS_KEY = "colors";
 const char* MOTION_RATE_KEY = "motionRate";
 
-WebSocketsServer webSocket = WebSocketsServer(1234);
 SoulDots soulDots;
 
 void setBehavior(DynamicJsonDocument& pattern_config) {
@@ -34,7 +41,6 @@ void setBehavior(DynamicJsonDocument& pattern_config) {
         soulDots.set_behavior(STATIC);
     }
 }
-
 
 void setColors(DynamicJsonDocument& pattern_config) {
     JsonArray new_colors = pattern_config[COLORS_KEY];
@@ -65,83 +71,81 @@ void updateSoulDots(DynamicJsonDocument& pattern_config) {
     setBehavior(pattern_config);
 }
 
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
-    switch(type) {
-        case WStype_DISCONNECTED:
-            USE_SERIAL.printf("[%u] Disconnected!\n", num);
-            break;
-        case WStype_CONNECTED: {
-                IPAddress ip = webSocket.remoteIP(num);
-                USE_SERIAL.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-            }
-            break;
-        case WStype_TEXT: {
-                USE_SERIAL.printf("[%u] get Text: %s\n", num, payload);
-                DynamicJsonDocument patternConfig(1024);
-                DeserializationError err = deserializeJson(patternConfig, payload);
+class MyServerCallbacks: public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    deviceConnected = true;
+  };
+
+  void onDisconnect(BLEServer* pServer) {
+    deviceConnected = false;
+  }
+};
+
+class MyCallbacks: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string rxValue = pCharacteristic->getValue();
+
+    if (rxValue.length() > 0) {
+      DynamicJsonDocument patternConfig(1024);
+      DeserializationError err = deserializeJson(patternConfig, rxValue.c_str());
+      Serial.println(rxValue.c_str());
                 switch(err.code()) {
                     case DeserializationError::Ok:
-                        USE_SERIAL.println("Deserialization succeeded");
+                        Serial.println("Deserialization succeeded");
                         updateSoulDots(patternConfig);
                         soulDots.switch_behavior(&soulDots);
                         break;
                     case DeserializationError::InvalidInput:
-                        USE_SERIAL.println("Invalid input!");
+                        Serial.println("Invalid input!");
                         break;
                     case DeserializationError::NoMemory:
-                        USE_SERIAL.println("Not enough memory");
+                        Serial.println("Not enough memory");
                         break;
                     default:
-                        USE_SERIAL.println("Deserialization failed");
+                        Serial.println("Deserialization failed");
                         break;
-                }
-            }
-            break;
-    case WStype_ERROR:
-            USE_SERIAL.printf("Received error\n");
-    case WStype_FRAGMENT_TEXT_START:
-            USE_SERIAL.printf("Received text start\n");
-    case WStype_FRAGMENT_BIN_START:
-    case WStype_FRAGMENT:
-    case WStype_FRAGMENT_FIN:
-        case WStype_BIN:
-            USE_SERIAL.printf("Received binary\n");
-      break;
+                }      
     }
-
-}
+  }
+};
 
 void setup() {
-    soulDots.begin(60);
+  Serial.begin(115200);
+  soulDots.begin(60);
+  
+  BLEDevice::init("Lumos Service");
+  BLEDevice::setMTU(517);
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
 
-    USE_SERIAL.begin(115200);
-    USE_SERIAL.setDebugOutput(true);
-    USE_SERIAL.println();
-    USE_SERIAL.println();
-    USE_SERIAL.println();
-    for(uint8_t t = 4; t > 0; t--) {
-        USE_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
-        USE_SERIAL.flush();
-        delay(1000);
-    }
+  BLEService *pService = pServer->createService(SERVICE_UUID);
 
-    WiFi.begin(SSID, PASSWORD);
+  BLECharacteristic * pRxCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID_RX,
+    BLECharacteristic::PROPERTY_WRITE
+  );
 
-    while(WiFi.status() != WL_CONNECTED) {
-        USE_SERIAL.printf("Attempting connection\n");
-        delay(100);
-    }
+  pRxCharacteristic->setCallbacks(new MyCallbacks());
 
-    USE_SERIAL.printf("Wi-Fi connected\n");
-    USE_SERIAL.println("Connected!");
-    USE_SERIAL.print("My IP address: ");
-    USE_SERIAL.println(WiFi.localIP());
-    webSocket.onEvent(webSocketEvent);
-    webSocket.begin();
-    USE_SERIAL.printf("Websocket server started\n");
+  // Start the service
+  pService->start();
+
+  // Start advertising
+  pServer->getAdvertising()->addServiceUUID(pService->getUUID());
+  pServer->getAdvertising()->start();
+  Serial.println("Waiting a client connection to notify...");
 }
 
 void loop() {
-    webSocket.loop();
-    soulDots.loop();
+  if (!deviceConnected && oldDeviceConnected) {
+    delay(500); // give the bluetooth stack the chance to get things ready
+    pServer->startAdvertising(); // restart advertising
+    Serial.println("start advertising");
+    oldDeviceConnected = deviceConnected;
+  }
+
+  if (deviceConnected && !oldDeviceConnected) {
+    oldDeviceConnected = deviceConnected;
+  }
+  soulDots.loop();  
 }
