@@ -2,15 +2,30 @@
 
 #define DATA_PIN 19
 
-SoulDots::SoulDots(int num_leds, CRGB* colors, int num_colors, int max_brightness, int animation_rate) {
+SoulDots::SoulDots(
+    int num_leds, 
+    CRGB* colors, 
+    uint8_t* anchor_points, 
+    int num_colors, 
+    int num_anchor_points, 
+    int max_brightness, 
+    int animation_rate
+    ) {
+
     _leds = new CRGB[num_leds];
     _num_leds = num_leds;
 
     if (colors == NULL)  {
         _colors = new CRGB[2] {CRGB::Red, CRGB::Blue};
+        _anchor_points = new uint8_t[2] {0, 125};
         _num_colors = 2;
     } else {
         memcpy(_colors, colors, num_colors * sizeof(CRGB));
+        if (anchor_points == NULL || num_colors != num_anchor_points) {
+            memcpy(_anchor_points, generate_uniform_anchor_points(num_colors), num_colors * sizeof(uint8_t));
+        } else {
+            memcpy(_anchor_points, anchor_points, num_colors * sizeof(uint8_t));
+        }
         _num_colors = num_colors;
     }
 
@@ -26,6 +41,9 @@ SoulDots::SoulDots(const SoulDots& s) {
     _colors = new CRGB[s._num_colors];
     memcpy(_colors, s._colors, s._num_colors * sizeof(CRGB));
 
+    _anchor_points = new uint8_t[s._num_colors];
+    memcpy(_anchor_points, s._anchor_points, s._num_colors * sizeof(uint8_t));
+
     _num_colors = s._num_colors;
     _num_leds = s._num_leds;
     _animation_rate = s._animation_rate;
@@ -33,7 +51,16 @@ SoulDots::SoulDots(const SoulDots& s) {
     _behavior = s._behavior;
 }
 
-void SoulDots::begin(int num_leds, CRGB* colors, int num_colors, int animation_rate, int max_brightness) {
+void SoulDots::begin(
+    int num_leds, 
+    CRGB* colors, 
+    uint8_t* anchor_points, 
+    int num_colors, 
+    int num_anchor_points, 
+    int max_brightness, 
+    int animation_rate
+    ) {
+
     /*
     second initialization method because the stack, heap and registers etc aren't set up before the setup() function
     is called so even though the constructor is called in global scope, the members might not have been initialized
@@ -43,9 +70,15 @@ void SoulDots::begin(int num_leds, CRGB* colors, int num_colors, int animation_r
 
     if (colors == NULL)  {
         _colors = new CRGB[2] {CRGB::Red, CRGB::Blue};
+        _anchor_points = new uint8_t[2] {0, 125};
         _num_colors = 2;
     } else {
         memcpy(_colors, colors, num_colors * sizeof(CRGB));
+        if (anchor_points == NULL || num_colors != num_anchor_points) {
+            memcpy(_anchor_points, generate_uniform_anchor_points(num_colors), num_colors * sizeof(uint8_t));
+        } else {
+            memcpy(_anchor_points, anchor_points, num_colors * sizeof(uint8_t));
+        }        
         _num_colors = num_colors;
     }
 
@@ -70,9 +103,14 @@ void SoulDots::set_behavior(Behavior new_behavior) {
     _behavior = new_behavior;
 }
 
-void SoulDots::set_colors(CRGB* colors, int num_colors) {
+void SoulDots::set_colors(CRGB* colors, uint8_t* anchor_points, int num_colors, int num_anchor_points) {
     if (num_colors >= 2) {
         memcpy(_colors, colors, num_colors * sizeof(CRGB));
+        if (anchor_points == NULL || num_colors != num_anchor_points) {
+            memcpy(_anchor_points, generate_uniform_anchor_points(num_colors), num_colors * sizeof(uint8_t));
+        } else {
+            memcpy(_anchor_points, anchor_points, num_colors * sizeof(uint8_t));
+        } 
         _num_colors = num_colors;
         _current_palette = create_palette();
     }
@@ -85,9 +123,7 @@ CRGBPalette16 &SoulDots::create_palette() {
 
     for (uint8_t i = 0; i < _num_colors; i++) {
         uint8_t palette_anchor_base = i * 4;
-        uint8_t color_index = (i == 0) ? 0 : (index_step * i) - 1;
-        color_index = (i == (_num_colors - 1)) ? 255 : color_index;
-        palette_anchors[palette_anchor_base] = color_index;
+        palette_anchors[palette_anchor_base] = _anchor_points[i];
         palette_anchors[palette_anchor_base + 1] = _colors[i].red;
         palette_anchors[palette_anchor_base + 2] = _colors[i].green;
         palette_anchors[palette_anchor_base + 3] = _colors[i].blue;
@@ -203,4 +239,16 @@ void SoulDots::fade_colors() {
 void SoulDots::fade_colors_wrapper(void* soulDots) {
     SoulDots* thisObject = (SoulDots*)soulDots;
     thisObject->fade_colors();
+}
+
+uint8_t* SoulDots::generate_uniform_anchor_points(int num_anchor_points) {
+    uint8_t anchor_points[num_anchor_points];
+    uint8_t index_step = 256 / (num_anchor_points - 1);
+
+    for (uint8_t i = 0; i < num_anchor_points; i++) {
+        uint8_t anchor_point = (i == 0) ? 0 : (index_step * i) - 1;
+        anchor_point = (i == (num_anchor_points - 1)) ? 255 : anchor_point;
+        anchor_points[i] = anchor_point;
+    }
+    return anchor_points;  
 }
