@@ -107,6 +107,7 @@ void SoulDots::set_colors(CRGB* colors, uint8_t* anchor_points, int num_colors, 
     if (num_colors >= 2) {
         memcpy(_colors, colors, num_colors * sizeof(CRGB));
         if (anchor_points == NULL || num_colors != num_anchor_points) {
+            _anchor_points = new uint8_t[num_colors];
             memcpy(_anchor_points, generate_uniform_anchor_points(num_colors), num_colors * sizeof(uint8_t));
         } else {
             memcpy(_anchor_points, anchor_points, num_colors * sizeof(uint8_t));
@@ -242,7 +243,7 @@ void SoulDots::fade_colors_wrapper(void* soulDots) {
 }
 
 uint8_t* SoulDots::generate_uniform_anchor_points(int num_anchor_points) {
-    uint8_t anchor_points[num_anchor_points];
+    uint8_t *anchor_points = new uint8_t[num_anchor_points];
     uint8_t index_step = 256 / (num_anchor_points - 1);
 
     for (uint8_t i = 0; i < num_anchor_points; i++) {
