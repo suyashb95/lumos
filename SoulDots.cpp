@@ -151,6 +151,10 @@ void SoulDots::switch_behavior(void* soulDots) {
             _current_task_id = _timer.every(_animation_rate, wave_palette_wrapper, soulDots);
             break;
         }
+        case TWINKLE:{
+            _current_task_id = _timer.every(_animation_rate, twinkle_palette_wrapper, soulDots);
+            break;
+        } 
         default:{
             _current_task_id = _timer.every(_animation_rate, static_color_wrapper, soulDots);
             break;
@@ -208,6 +212,26 @@ void SoulDots::flash_colors_wrapper(void* soulDots) {
     thisObject->flash_colors();
 }
 
+void SoulDots::twinkle_palette_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*)soulDots;
+    thisObject->twinkle_palette();
+}
+
+void SoulDots::twinkle_palette() {
+    static uint8_t *offsets = generate_offsets();
+    static uint8_t wave_counter = 0;  
+    static uint8_t index_offset = 256 / _num_leds;
+
+    for(uint8_t i = 0; i < _num_leds; i++) {
+        _leds[i] = blend(
+            ColorFromPalette(_current_palette, i * index_offset), CRGB::Black, triwave8(wave_counter + offsets[i])
+        );
+    }
+
+    wave_counter++;    
+    FastLED.show();
+}
+
 void SoulDots::fade_colors() {
     if (_num_colors == 0)
         return;
@@ -252,4 +276,12 @@ uint8_t* SoulDots::generate_uniform_anchor_points(int num_anchor_points) {
         anchor_points[i] = anchor_point;
     }
     return anchor_points;  
+}
+
+uint8_t* SoulDots::generate_offsets() {
+    uint8_t *offsets = new uint8_t[_num_colors];
+    for (uint8_t i = 0; i < _num_colors; i++) {
+        offsets[i] = random8();
+    }
+    return offsets;
 }
