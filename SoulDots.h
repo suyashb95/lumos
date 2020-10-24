@@ -6,7 +6,8 @@ enum Behavior {
 	FADE,
 	FLASH,
 	BREATHE,
-	WAVE
+	WAVE,
+	TWINKLE
 };
 
 class SoulDots {
@@ -16,11 +17,12 @@ class SoulDots {
 			int num_leds = 0, 
 			CRGB* colors = NULL, 
 			uint8_t* anchor_points = NULL,
-      int num_colors = 2,       
+      		int num_colors = 2,       
 			int num_anchor_points = 2,
 			int max_brightness = 50,
 			int animation_rate = 50
 		);
+
     	SoulDots(const SoulDots& soulDots);
 
 		void set_max_brightness(int brightness);
@@ -32,7 +34,7 @@ class SoulDots {
 			int num_leds = 0, 
 			CRGB* colors = NULL, 
 			uint8_t* anchor_points = NULL,
-      int num_colors = 2,       
+      		int num_colors = 2,       
 			int num_anchor_points = 2,
 			int max_brightness = 50,
 			int animation_rate = 50
@@ -52,10 +54,11 @@ class SoulDots {
 		int _num_colors;
 		int _current_task_id;
 		Timer _timer;
-   	Behavior _behavior;
+   		Behavior _behavior;
 
 		CRGBPalette16& create_palette();
 		uint8_t* generate_uniform_anchor_points(int);
+		uint8_t* generate_offsets();
     	void static_color();
 		static void static_color_wrapper(void* soulDots);
 		void flash_colors();
@@ -64,4 +67,6 @@ class SoulDots {
 		static void fade_colors_wrapper(void* soulDots);
 		void wave_palette();
 		static void wave_palette_wrapper(void* soulDots);
+		void twinkle_palette();
+		static void twinkle_palette_wrapper(void* soulDots);		
 };
