@@ -46,6 +46,10 @@ void setBehavior(DynamicJsonDocument &pattern_config)
   {
     soulDots.set_behavior(WAVE);
   }
+  else if (strcmp(behavior, "TWINKLE") == 0)
+  {
+    soulDots.set_behavior(TWINKLE);
+  }  
   else
   {
     soulDots.set_behavior(STATIC);
@@ -128,7 +132,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
       case DeserializationError::Ok:
         Serial.println("Deserialization succeeded");
         updateSoulDots(patternConfig);
-        soulDots.switch_behavior(&soulDots);
+        soulDots.update();
         break;
       case DeserializationError::InvalidInput:
         Serial.println("Invalid input!");

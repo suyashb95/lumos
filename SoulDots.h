@@ -5,8 +5,8 @@ enum Behavior {
 	STATIC,
 	FADE,
 	FLASH,
-	BREATHE,
 	WAVE,
+	BREATHE,
 	TWINKLE
 };
 
@@ -41,7 +41,7 @@ class SoulDots {
 		);
 
 		void loop();
-		void switch_behavior(void* soulDots);
+		void update();
 
 	private:
 		CRGBPalette16 _current_palette;

@@ -104,7 +104,14 @@ void SoulDots::set_behavior(Behavior new_behavior) {
 }
 
 void SoulDots::set_colors(CRGB* colors, uint8_t* anchor_points, int num_colors, int num_anchor_points) {
-    if (num_colors >= 2) {
+    if (num_colors >= 2 && colors != NULL) {
+        /*
+        This will cause undefined behavior as _colors may not be of the same size as colors
+        Check for array size here
+        1) swap pointers, what if it's freed somewhere else?
+        2) free and reallocate
+        3) maintain max 16/32 colors
+        */
         memcpy(_colors, colors, num_colors * sizeof(CRGB));
         if (anchor_points == NULL || num_colors != num_anchor_points) {
             _anchor_points = new uint8_t[num_colors];
@@ -132,31 +139,31 @@ CRGBPalette16 &SoulDots::create_palette() {
     return _current_palette.loadDynamicGradientPalette(palette_anchors);
 }
 
-void SoulDots::switch_behavior(void* soulDots) {
+void SoulDots::update() {
     _timer.stop(_current_task_id);
     switch (_behavior) {
         case STATIC: {
-            _current_task_id = _timer.every(_animation_rate, static_color_wrapper, soulDots);
+            _current_task_id = _timer.every(_animation_rate, static_color_wrapper, (void *)this);
             break;
         }
         case FLASH: {
-            _current_task_id = _timer.every(_animation_rate, flash_colors_wrapper, soulDots);
+            _current_task_id = _timer.every(_animation_rate, flash_colors_wrapper, (void *)this);
             break;
         }
         case FADE: {
-            _current_task_id = _timer.every(_animation_rate, fade_colors_wrapper, soulDots);
+            _current_task_id = _timer.every(_animation_rate, fade_colors_wrapper, (void *)this);
             break;
         }
         case WAVE:{
-            _current_task_id = _timer.every(_animation_rate, wave_palette_wrapper, soulDots);
+            _current_task_id = _timer.every(_animation_rate, wave_palette_wrapper, (void *)this);
             break;
         }
         case TWINKLE:{
-            _current_task_id = _timer.every(_animation_rate, twinkle_palette_wrapper, soulDots);
+            _current_task_id = _timer.every(_animation_rate, twinkle_palette_wrapper, (void *)this);
             break;
         } 
         default:{
-            _current_task_id = _timer.every(_animation_rate, static_color_wrapper, soulDots);
+            _current_task_id = _timer.every(_animation_rate, static_color_wrapper, (void *)this);
             break;
         }
     }
