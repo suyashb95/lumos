@@ -151,7 +151,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
 void setup()
 {
   Serial.begin(115200);
-  soulDots.begin(60);
+    soulDots.begin(60);
 
   BLEDevice::init("Lumos Service");
   BLEDevice::setMTU(517);
