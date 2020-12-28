@@ -1,18 +1,20 @@
 #include "SoulDots.h"
+#include "utils.h"
 
 #define DATA_PIN 19
-   
+#define MAX_NUM_COLORS 32
+
 SoulDots::SoulDots() {}
 
 SoulDots::SoulDots(const SoulDots& s) {
     _leds = new CRGB[s._num_leds];
     memcpy(_leds, s._leds, s._num_leds * sizeof(CRGB));
 
-    _colors = new CRGB[16];
+    _colors = new CRGB[MAX_NUM_COLORS];
     memcpy(_colors, s._colors, s._num_colors * sizeof(CRGB));
 
-    _anchor_points = new uint8_t[16];
-    memcpy(_anchor_points, s._anchor_points, s._num_colors * sizeof(uint8_t));
+    _anchor_points = new uint16_t[MAX_NUM_COLORS];
+    memcpy(_anchor_points, s._anchor_points, s._num_colors * sizeof(uint16_t));
 
     _num_colors = s._num_colors;
     _num_leds = s._num_leds;
@@ -22,19 +24,19 @@ SoulDots::SoulDots(const SoulDots& s) {
 }
 
 void SoulDots::begin(
-    int num_leds, 
-    CRGB* colors, 
-    uint8_t* anchor_points, 
-    int num_colors, 
-    int num_anchor_points, 
-    int max_brightness, 
+    int num_leds,
+    CRGB* colors,
+    uint16_t* anchor_points,
+    int num_colors,
+    int num_anchor_points,
+    int max_brightness,
     int animation_rate
     ) {
 
-    _leds = new CRGB[num_leds];    
+    _leds = new CRGB[num_leds];
     _num_leds = num_leds;
-    _colors = new CRGB[16];    
-    _anchor_points = new uint8_t[16];
+    _colors = new CRGB[MAX_NUM_COLORS];
+    _anchor_points = new uint16_t[MAX_NUM_COLORS];
     _num_colors = num_colors;
     _animation_rate = animation_rate;
     _max_brightness = max_brightness;
@@ -52,22 +54,24 @@ void SoulDots::set_max_brightness(int max_brightness) {
 }
 
 void SoulDots::set_animation_rate(int animation_rate) {
-    _animation_rate = animation_rate; 
+    _animation_rate = animation_rate;
 }
 
 void SoulDots::set_behavior(Behavior new_behavior) {
     _behavior = new_behavior;
 }
 
-void SoulDots::set_colors(CRGB* colors, uint8_t* anchor_points, int num_colors, int num_anchor_points) {
+void SoulDots::set_colors(CRGB* colors, uint16_t* anchor_points, int num_colors, int num_anchor_points) {
     assert(num_colors <= 32 && num_colors >= 1);
     memcpy(_colors, colors, num_colors * sizeof(CRGB));
     _num_colors = num_colors;
-    if (anchor_points == NULL || num_colors != num_anchor_points) {
-        generate_uniform_anchor_points(num_colors);
+    if (anchor_points == NULL || num_anchor_points == 0 || num_colors != num_anchor_points) {
+        uint16_t* anchor_points = generate_uniform_anchor_points(0, 256, num_colors);
+        memcpy(_anchor_points, anchor_points, num_colors * sizeof(uint16_t));
+        delete[] anchor_points;
     } else {
-        memcpy(_anchor_points, anchor_points, num_anchor_points * sizeof(uint8_t));
-    } 
+        memcpy(_anchor_points, anchor_points, num_anchor_points * sizeof(uint16_t));
+    }
     _current_palette = create_palette(num_colors);
 }
 
@@ -119,7 +123,7 @@ void SoulDots::update() {
         case TWINKLE:{
             _current_task_id = _timer.every(_animation_rate, twinkle_palette_wrapper, (void *)this);
             break;
-        } 
+        }
         default:{
             _current_task_id = _timer.every(_animation_rate, static_color_wrapper, (void *)this);
             break;
@@ -136,11 +140,6 @@ void SoulDots::static_color() {
     FastLED.show();
 }
 
-void SoulDots::static_color_wrapper(void* soulDots) {
-    SoulDots* thisObject = (SoulDots*)soulDots;
-    thisObject->static_color();
-}
-
 void SoulDots::wave_palette() {
     static uint8_t start_index = 0;
     static uint8_t index_increment = 1;
@@ -148,11 +147,6 @@ void SoulDots::wave_palette() {
     fill_palette(_leds, _num_leds, start_index, index_increment, _current_palette, 100, LINEARBLEND);
     start_index = (start_index == 255) ? 0 : start_index + 1;
     FastLED.show();
-}
-
-void SoulDots::wave_palette_wrapper(void* soulDots) {
-    SoulDots* thisObject = (SoulDots*) soulDots;
-    thisObject->wave_palette();
 }
 
 void SoulDots::flash_colors() {
@@ -172,19 +166,9 @@ void SoulDots::flash_colors() {
     FastLED.show();
 }
 
-void SoulDots::flash_colors_wrapper(void* soulDots) {
-    SoulDots* thisObject = (SoulDots*)soulDots;
-    thisObject->flash_colors();
-}
-
-void SoulDots::twinkle_palette_wrapper(void* soulDots) {
-    SoulDots* thisObject = (SoulDots*)soulDots;
-    thisObject->twinkle_palette();
-}
-
 void SoulDots::twinkle_palette() {
-    static uint8_t *offsets = generate_offsets();
-    static uint8_t wave_counter = 0;  
+    static uint8_t *offsets = generate_random_offsets(_num_leds);
+    static uint8_t wave_counter = 0;
     static uint8_t index_offset = 256 / _num_leds;
 
     for(uint8_t i = 0; i < _num_leds; i++) {
@@ -193,7 +177,7 @@ void SoulDots::twinkle_palette() {
         );
     }
 
-    wave_counter++;    
+    wave_counter++;
     FastLED.show();
 }
 
@@ -226,25 +210,27 @@ void SoulDots::fade_colors() {
     FastLED.show();
 }
 
+void SoulDots::static_color_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*)soulDots;
+    thisObject->static_color();
+}
+
+void SoulDots::wave_palette_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*) soulDots;
+    thisObject->wave_palette();
+}
+
 void SoulDots::fade_colors_wrapper(void* soulDots) {
     SoulDots* thisObject = (SoulDots*)soulDots;
     thisObject->fade_colors();
 }
 
-void SoulDots::generate_uniform_anchor_points(uint8_t num_anchor_points) {
-    uint8_t index_step = 256 / (num_anchor_points - 1);
-
-    for (uint8_t i = 0; i < num_anchor_points; i++) {
-        uint8_t anchor_point = (i == 0) ? 0 : (index_step * i) - 1;
-        anchor_point = (i == (num_anchor_points - 1)) ? 255 : anchor_point;
-        _anchor_points[i] = anchor_point;
-    }
+void SoulDots::flash_colors_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*)soulDots;
+    thisObject->flash_colors();
 }
 
-uint8_t* SoulDots::generate_offsets() {
-    uint8_t *offsets = new uint8_t[_num_colors];
-    for (uint8_t i = 0; i < _num_colors; i++) {
-        offsets[i] = random8();
-    }
-    return offsets;
+void SoulDots::twinkle_palette_wrapper(void* soulDots) {
+    SoulDots* thisObject = (SoulDots*)soulDots;
+    thisObject->twinkle_palette();
 }

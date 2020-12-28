@@ -62,7 +62,7 @@ void setColors(DynamicJsonDocument &pattern_config)
   JsonArray new_anchor_points = pattern_config[ANCHOR_POINTS_KEY];
 
   CRGB *colors = new CRGB[new_colors.size()];
-  uint8_t *anchor_points = NULL;
+  uint16_t *anchor_points = NULL;
 
   for (uint8_t i = 0; i < new_colors.size(); i++)
   {
@@ -75,7 +75,7 @@ void setColors(DynamicJsonDocument &pattern_config)
 
   if (new_anchor_points.size() != 0)
   {
-    anchor_points = new uint8_t[new_anchor_points.size()];
+    anchor_points = new uint16_t[new_anchor_points.size()];
     for (uint8_t i = 0; i < new_colors.size(); i++)
     {
       anchor_points[i] = new_anchor_points[i];
@@ -151,7 +151,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
 void setup()
 {
   Serial.begin(115200);
-    soulDots.begin(60);
+  soulDots.begin(60);
 
   BLEDevice::init("Lumos Service");
   BLEDevice::setMTU(517);

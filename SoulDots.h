@@ -11,7 +11,7 @@ enum Behavior {
 };
 
 CRGB *const DEFAULT_COLORS = new CRGB[2] {CRGB::Blue, CRGB::Black};
-uint8_t *const DEFAULT_ANCHOR_POINTS = new uint8_t[2] {0, 255};
+uint16_t *const DEFAULT_ANCHOR_POINTS = new uint16_t[2] {0, 255};
 class SoulDots {
 
 	public:
@@ -22,12 +22,12 @@ class SoulDots {
 		void set_max_brightness(int brightness);
 		void set_animation_rate(int animation_rate);
 		void set_behavior(Behavior new_behavior);
-		void set_colors(CRGB colors[], uint8_t anchor_points[], int num_colors, int num_anchor_points);
+		void set_colors(CRGB colors[], uint16_t anchor_points[], int num_colors, int num_anchor_points);
 
 		void begin(
 			int num_leds = 0, 
 			CRGB* colors = DEFAULT_COLORS, 
-			uint8_t* anchor_points = DEFAULT_ANCHOR_POINTS,
+			uint16_t* anchor_points = DEFAULT_ANCHOR_POINTS,
       		int num_colors = 2,       
 			int num_anchor_points = 2,
 			int max_brightness = 50,
@@ -41,7 +41,7 @@ class SoulDots {
 		CRGBPalette16 _current_palette;
 		CRGB* _leds;
 		CRGB* _colors;
-		uint8_t* _anchor_points;
+		uint16_t* _anchor_points;
 		int _max_brightness;
 		int _animation_rate;
 		int _num_leds;
@@ -51,8 +51,6 @@ class SoulDots {
    		Behavior _behavior;
 
 		CRGBPalette16& create_palette(uint8_t num_colors);
-		void generate_uniform_anchor_points(uint8_t);
-		uint8_t* generate_offsets();
     	void static_color();
 		static void static_color_wrapper(void* soulDots);
 		void flash_colors();
