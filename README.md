@@ -5,7 +5,7 @@ Twinkle \
 ![alt](./assets/switch.gif)
 
 Wave through a palette \
-![alt](./assets/wave.mp4)
+![alt](./assets/wave.gif)
 
 Fade through a palette \
 ![alt](./assets/fade.gif)
