@@ -2,13 +2,13 @@
 A Bluetooth Controlled LED Strip Project. It uses an ESP32 microcontroller to drive a 1M strip of 60 WS2813 LEDs. The project is controlled via Bluetooth using an Android app and supports multiple effects out of the box
 
 Twinkle \
-![alt](https://thumbs.gfycat.com/InnocentHighlevelInganue-small.gif)
+![alt](./assets/switch.gif)
 
 Wave through a palette \
-![alt](https://thumbs.gfycat.com/CleanReasonableFrog-small.gif)
+![alt](./assets/wave.mp4)
 
 Fade through a palette \
-![alt](https://thumbs.gfycat.com/HappygoluckyHomelyApe-small.gif)
+![alt](./assets/fade.gif)
 
 ### Getting the parts
  - ESP32 Dev Kit
